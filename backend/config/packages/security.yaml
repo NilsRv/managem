@@ -1,0 +1,62 @@
+# config/packages/security.yaml
+security:
+  # ----------------------------------------------------
+  # Hash des mots de passe
+  password_hashers:
+    Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: "auto"
+
+  # ----------------------------------------------------
+  # Chargement des utilisateurs
+  providers:
+    app_user_provider:
+      entity:
+        class: App\Entity\User
+        property: email
+
+  # ----------------------------------------------------
+  # Firewalls
+  firewalls:
+    # Assets / profiler
+    dev:
+      pattern: ^/(_(profiler|wdt)|css|images|js)/
+      security: false
+
+    # Route de login (json_login)
+    register:
+      pattern: ^/api/register$
+      stateless: true
+      security: false # => PAS de contrôle de JWT, PAS de JSON-login
+
+    # 2) Votre firewall de login pour récupérer le JWT
+    login:
+      pattern: ^/api/login$
+      stateless: true
+      json_login:
+        check_path: /api/login
+        username_path: email
+        password_path: password
+        success_handler: lexik_jwt_authentication.handler.authentication_success
+        failure_handler: lexik_jwt_authentication.handler.authentication_failure
+
+    api:
+      pattern: ^/api
+      stateless: true
+      jwt:
+        authenticator: lexik_jwt_authentication.security.jwt_authenticator
+
+    # Fallback pour l’interface “main” (si vous hébergez des pages Twig par exemple)
+    main:
+      pattern: ^/
+      provider: app_user_provider
+      form_login:
+        login_path: login
+        check_path: login
+      logout:
+        path: logout
+
+  # ----------------------------------------------------
+  # Contrôles d’accès
+  access_control:
+    - { path: ^/api/register$, roles: IS_AUTHENTICATED_ANONYMOUSLY }
+    - { path: ^/api/login$, roles: IS_AUTHENTICATED_ANONYMOUSLY }
+    - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
