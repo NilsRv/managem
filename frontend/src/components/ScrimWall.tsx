@@ -1,6 +1,8 @@
 import { Button } from "@heroui/button";
 import { Chip } from "@heroui/chip";
 import { useEffect, useState } from "react";
+import { useTeamStore } from "@/store/teamStore";
+import { bookScrim } from "@/api/scrim";
 
 type Scrim = {
   id: number;
@@ -63,6 +65,7 @@ export default function ScrimWall() {
   const [scrims, setScrims] = useState<Scrim[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { selectedTeam } = useTeamStore();
 
   useEffect(() => {
     async function fetchScrims() {
@@ -149,7 +152,22 @@ export default function ScrimWall() {
                       </Chip>
                       <Chip className={rankColor()}>{scrim.rank}</Chip>
                     </div>
-                    <Button className="rounded-xl bg-gray-800 px-4 py-1.5 text-white hover:bg-gray-700 transition">
+                    <Button
+                      className="rounded-xl bg-gray-800 px-4 py-1.5 text-white hover:bg-gray-700 transition"
+                      onClick={async () => {
+                        if (!selectedTeam) {
+                          alert("Veuillez d'abord sélectionner une équipe.");
+                          return;
+                        }
+
+                        try {
+                          await bookScrim(scrim.id, Number(selectedTeam));
+                          alert("Scrim réservé avec succès !");
+                        } catch (error: any) {
+                          alert(`Erreur : ${error.message}`);
+                        }
+                      }}
+                    >
                       Book
                     </Button>
                   </div>
