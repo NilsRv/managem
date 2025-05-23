@@ -15,6 +15,33 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 #[Route('/api/scrims', name: 'api_scrims_')]
 class ScrimController extends AbstractController
 {
+    #[Route('', name: 'list', methods: ['GET'])]
+    public function list(EntityManagerInterface $em): JsonResponse
+    {
+        $scrimRepository = $em->getRepository(ScrimPost::class);
+
+        // On récupère tous les scrims (ou ajouter un tri par dateTime par ex)
+        $scrims = $scrimRepository->findBy([], ['dateTime' => 'ASC']);
+
+        // On formate la réponse au format JSON
+        $result = array_map(function (ScrimPost $scrim) {
+            return [
+                'id' => $scrim->getId(),
+                'team' => $scrim->getTeam()->getName(),
+                'format' => $scrim->getFormat(),
+                'region' => $scrim->getRegion(),
+                'rank' => $scrim->getRank(),
+                // On extrait l'heure en "HH:mm" depuis la DateTime
+                'time' => $scrim->getDateTime()->format('H:i'),
+                'date' => $scrim->getDateTime()->format('Y-m-d'),
+                'status' => $scrim->getStatus(),
+                'createdAt' => $scrim->getCreatedAt()->format(\DateTime::ATOM),
+            ];
+        }, $scrims);
+
+        return $this->json($result);
+    }
+
     #[Route('/create', name: 'create', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
     public function create(

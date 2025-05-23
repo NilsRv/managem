@@ -8,3 +8,5 @@ export type Scrim = {
   rank: number;         // ex: 2000
   createdAt: string;
 };
+
+export type TagType = "date" | "time" | "format" | "region" | "rank";

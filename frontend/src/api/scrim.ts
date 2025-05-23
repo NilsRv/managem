@@ -25,7 +25,7 @@ export const createScrim = async (
 ): Promise<Scrim> => {
   const headers = await getAuthHeaders();
 
-  const response = await fetch(`${API_URL}/api/scrims`, {
+  const response = await fetch(`${API_URL}/api/scrims/create`, {
     method: "POST",
     headers,
     body: JSON.stringify({ teamId, format, date, time, region, rank }),

@@ -5,9 +5,11 @@ import ScrimWall from "@/components/ScrimWall";
 export default function IndexPage() {
   return (
     <DefaultLayout>
-      <div className="w-full max-w-6xl flex flex-col gap-6">
-        <PostScrimCard />
-        <ScrimWall />
+      <div className="flex justify-center w-full">
+        <div className="w-full max-w-2xl flex flex-col gap-6">
+          <PostScrimCard />
+          <ScrimWall />
+        </div>
       </div>
     </DefaultLayout>
   );

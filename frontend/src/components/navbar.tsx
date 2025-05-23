@@ -34,13 +34,13 @@ import { Logo } from "@/components/icons";
 import { useAuth } from "@/hooks/useAuth";
 import { Team } from "@/types/team";
 import { getMyTeams, createTeam } from "@/api/team"; // assure-toi d'avoir createTeam
+import { useTeamStore } from "@/store/teamStore";
+import { ThemeSwitch } from "./theme-switch";
 
 export const Navbar = () => {
   const { getUserEmail } = useAuth();
   const userEmail = getUserEmail();
-
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+  const { teams, selectedTeam, fetchTeams, selectTeam } = useTeamStore();
   const [newTeamName, setNewTeamName] = useState("");
   const [loading, setLoading] = useState(true);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -51,41 +51,15 @@ export const Navbar = () => {
   } = useDisclosure();
 
   useEffect(() => {
-    setLoading(true);
-    getMyTeams()
-      .then((teams) => {
-        setTeams(teams);
-        const savedTeam = localStorage.getItem("selectedTeam");
-        const validTeam = teams.find(
-          (team) => team.id.toString() === savedTeam
-        );
-        if (savedTeam && validTeam) {
-          setSelectedTeam(savedTeam);
-        } else if (teams.length > 0) {
-          setSelectedTeam(teams[0].id.toString());
-        }
-      })
-      .catch((err) => console.error("Erreur chargement équipes:", err))
-      .finally(() => setLoading(false));
+    fetchTeams();
   }, []);
 
-  useEffect(() => {
-    if (selectedTeam) {
-      localStorage.setItem("selectedTeam", selectedTeam);
-    }
-  }, [selectedTeam]);
-
-  const handleCreateTeam = async (onClose: () => void) => {
-    try {
-      const created = await createTeam(newTeamName);
+  const handleCreateTeam = async () => {
+    if (!newTeamName.trim()) return;
+    const created = await createTeam(newTeamName);
+    if (created) {
+      await fetchTeams(); // recharge les équipes + met à jour selectedTeam via localStorage
       setNewTeamName("");
-      onClose();
-      // Recharger les équipes après création
-      const teams = await getMyTeams();
-      setTeams(teams);
-      setSelectedTeam(created.id.toString());
-    } catch (err) {
-      console.error("Erreur création d'équipe :", err);
     }
   };
 
@@ -150,6 +124,7 @@ export const Navbar = () => {
         className="hidden sm:flex basis-1/5 sm:basis-full"
         justify="end"
       >
+        <ThemeSwitch />
         {/* Team Selector intégré dans un Dropdown */}
         <Dropdown placement="bottom-end">
           <DropdownTrigger>
@@ -168,7 +143,7 @@ export const Navbar = () => {
             onAction={(key) => {
               if (key === "__create__") onOpen();
               else if (key === "__teamModal__") openTeamModal();
-              else if (typeof key === "string") setSelectedTeam(key);
+              else if (typeof key === "string") selectTeam(key);
             }}
             className="min-w-[200px]"
           >
@@ -281,10 +256,7 @@ export const Navbar = () => {
                 <Button variant="light" onPress={onClose}>
                   Annuler
                 </Button>
-                <Button
-                  color="primary"
-                  onPress={() => handleCreateTeam(onClose)}
-                >
+                <Button color="primary" onPress={() => handleCreateTeam()}>
                   Créer
                 </Button>
               </ModalFooter>

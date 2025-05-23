@@ -1,128 +1,264 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { format, isToday, isTomorrow } from "date-fns";
+import { fr } from "date-fns/locale";
+
 import { Card, CardBody } from "@heroui/card";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@heroui/popover";
+
 import { CalendarDays, Clock, Swords, Globe, Castle } from "lucide-react";
+
+import { DayPicker } from "react-day-picker";
+import "react-day-picker/dist/style.css";
+import { Select, SelectItem } from "@heroui/select";
+import { getMyTeams } from "@/api/team";
+import { Team } from "@/types/team";
+import { useTeamStore } from "@/store/teamStore";
 import { createScrim } from "@/api/scrim";
 
 export default function PostScrimCard() {
   const [teamName, setTeamName] = useState("");
+  const { teams, selectedTeam, fetchTeams, selectTeam } = useTeamStore();
+  const [loading, setLoading] = useState(true);
   const [pseudo, setPseudo] = useState("");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
+    new Date()
+  );
 
-  const today = new Date().toISOString().split("T")[0]; // format YYYY-MM-DD
-  const now = new Date().toTimeString().slice(0, 5); // format HH:mm
+  const [selectedTime, setSelectedTime] = useState<string>(() => {
+    const now = new Date();
+    return `${now.getHours().toString().padStart(2, "0")}:${now
+      .getMinutes()
+      .toString()
+      .padStart(2, "0")}`;
+  });
 
-  const [date, setDate] = useState(today);
-  const [time, setTime] = useState(now);
-  const [format, setFormat] = useState("BO5");
-  const [region, setRegion] = useState("EUW");
-  const [rank, setRank] = useState("2000");
+  // Edition inline états
+  const [isEditingTime, setIsEditingTime] = useState(false);
+  const [isEditingFormat, setIsEditingFormat] = useState(false);
+  const [isEditingRegion, setIsEditingRegion] = useState(false);
+  const [isEditingRank, setIsEditingRank] = useState(false);
 
-  const handlePost = async () => {
+  // Valeurs éditables
+  const [formatText, setFormatText] = useState("Best of 7");
+  const [regionText, setRegionText] = useState("EUW");
+  const [rankNumber, setRankNumber] = useState<number>(2000);
+
+  const formatDateLabel = (date?: Date) => {
+    if (!date) return "Pick a date";
+    if (isToday(date)) return "Today";
+    if (isTomorrow(date)) return "Tomorrow";
+    return format(date, "d MMMM", { locale: fr });
+  };
+
+  const handlePostScrim = async () => {
+    if (!selectedTeam) {
+      alert("Veuillez sélectionner une équipe.");
+      return;
+    }
+    if (!selectedDate) {
+      alert("Veuillez sélectionner une date.");
+      return;
+    }
     try {
-      const teamId = 1; // à remplacer avec le vrai teamId
+      setLoading(true);
 
-      await createScrim(teamId, format, date, time, region, parseInt(rank, 10));
-      alert("Scrim posté !");
+      // Formatage de la date en ISO YYYY-MM-DD
+      const formattedDate = selectedDate.toISOString().split("T")[0];
+
+      console.log({
+        teamId: Number(selectedTeam),
+        format: formatText,
+        date: formattedDate,
+        time: selectedTime,
+        region: regionText,
+        rank: rankNumber,
+      });
+      // Appel à l'API
+      const scrim = await createScrim(
+        Number(selectedTeam),
+        formatText,
+        formattedDate,
+        selectedTime,
+        regionText,
+        rankNumber
+      );
+
+      alert("Scrim posté avec succès !");
+      // Tu peux reset les champs ou faire autre chose ici
     } catch (error: any) {
-      alert(error.message || "Erreur lors du post du scrim");
+      alert(`Erreur lors de la création du scrim : ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helpers pour gérer Enter + blur sur inputs
+  const handleInputKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    setEditing: (b: boolean) => void
+  ) => {
+    if (e.key === "Enter") {
+      setEditing(false);
+      e.currentTarget.blur();
     }
   };
 
   return (
-    <Card className="max-w-4xl mx-auto p-4 bg-white rounded-2xl shadow-md">
+    <Card className="p-4 bg-white rounded-2xl shadow-md">
       <CardBody className="space-y-4">
-        <div className="flex flex-col md:flex-row gap-4">
-          <Input
-            placeholder="Team name"
-            value={teamName}
-            onChange={(e) => setTeamName(e.target.value)}
-            className="flex-1 bg-gray-100"
-          />
-          <Input
-            placeholder="Pseudo"
-            value={pseudo}
-            onChange={(e) => setPseudo(e.target.value)}
-            className="flex-1 bg-gray-100"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <LabeledInput
-            icon={<CalendarDays className="text-rose-500 w-5 h-5" />}
-            label="Date"
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
-          <LabeledInput
-            icon={<Clock className="text-yellow-500 w-5 h-5" />}
-            label="Heure"
-            type="time"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-          />
-          <LabeledInput
-            icon={<Swords className="text-green-500 w-5 h-5" />}
-            label="Format"
-            value={format}
-            onChange={(e) => setFormat(e.target.value)}
-          />
-          <LabeledInput
-            icon={<Globe className="text-blue-600 w-5 h-5" />}
-            label="Région"
-            value={region}
-            onChange={(e) => setRegion(e.target.value)}
-          />
-          <LabeledInput
-            icon={<Castle className="text-purple-600 w-5 h-5" />}
-            label="Rank"
-            type="number"
-            value={rank}
-            onChange={(e) => setRank(e.target.value)}
-          />
-        </div>
-
-        <div className="flex justify-end">
+        <div className="flex flex-row gap-4 items-center">
+          <div className="flex-grow">
+            <Select
+              className="w-full"
+              size="sm"
+              label="Sélectionner une équipe"
+              selectedKeys={selectedTeam ? [selectedTeam] : []}
+              onSelectionChange={(keys) => {
+                const key = Array.from(keys)[0];
+                if (typeof key === "string") selectTeam(key);
+              }}
+              listboxProps={{
+                itemClasses: {
+                  base: [
+                    "rounded-md",
+                    "text-default-500",
+                    "transition-opacity",
+                    "data-[hover=true]:text-foreground",
+                    "data-[hover=true]:bg-default-100",
+                    "dark:data-[hover=true]:bg-default-50",
+                    "data-[selectable=true]:focus:bg-default-50",
+                    "data-[pressed=true]:opacity-70",
+                    "data-[focus-visible=true]:ring-default-500",
+                  ],
+                },
+              }}
+              popoverProps={{
+                classNames: {
+                  base: "before:bg-default-200",
+                },
+              }}
+            >
+              {teams.map((team) => (
+                <SelectItem key={team.id.toString()}>{team.name}</SelectItem>
+              ))}
+            </Select>
+          </div>
           <Button
-            onClick={handlePost}
             className="bg-black text-white hover:bg-gray-800 px-6 py-2 rounded-xl"
+            onPress={() => handlePostScrim()}
           >
             Post
           </Button>
         </div>
+
+        <div className="flex justify-center flex-wrap gap-3">
+          {/* Date picker */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors">
+                <CalendarDays className="text-rose-500 w-5 h-5" />
+                {formatDateLabel(selectedDate)}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 bg-white shadow-lg rounded-xl">
+              <DayPicker
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => setSelectedDate(date || undefined)}
+                locale={fr}
+              />
+            </PopoverContent>
+          </Popover>
+
+          {/* Time inline edit */}
+          {isEditingTime ? (
+            <input
+              type="time"
+              value={selectedTime}
+              onChange={(e) => setSelectedTime(e.target.value)}
+              onBlur={() => setIsEditingTime(false)}
+              onKeyDown={(e) => handleInputKeyDown(e, setIsEditingTime)}
+              autoFocus
+              className="text-black bg-gray-100 rounded-full px-3 py-1.5 text-sm font-medium w-[90px]"
+            />
+          ) : (
+            <button
+              onClick={() => setIsEditingTime(true)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors"
+            >
+              <Clock className="text-yellow-500 w-5 h-5" />
+              {selectedTime}
+            </button>
+          )}
+
+          {/* Format inline edit (string) */}
+          {isEditingFormat ? (
+            <input
+              type="text"
+              value={formatText}
+              onChange={(e) => setFormatText(e.target.value)}
+              onBlur={() => setIsEditingFormat(false)}
+              onKeyDown={(e) => handleInputKeyDown(e, setIsEditingFormat)}
+              autoFocus
+              className="text-black bg-gray-100 rounded-full px-3 py-1.5 text-sm font-medium w-auto max-w-[130px]"
+            />
+          ) : (
+            <button
+              onClick={() => setIsEditingFormat(true)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors"
+            >
+              <Swords className="text-green-500 w-5 h-5" />
+              {formatText}
+            </button>
+          )}
+
+          {/* Region inline edit (string) */}
+          {isEditingRegion ? (
+            <input
+              type="text"
+              value={regionText}
+              onChange={(e) => setRegionText(e.target.value)}
+              onBlur={() => setIsEditingRegion(false)}
+              onKeyDown={(e) => handleInputKeyDown(e, setIsEditingRegion)}
+              autoFocus
+              className="text-black bg-gray-100 rounded-full px-3 py-1.5 text-sm font-medium w-auto max-w-[80px]"
+            />
+          ) : (
+            <button
+              onClick={() => setIsEditingRegion(true)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors"
+            >
+              <Globe className="text-blue-600 w-5 h-5" />
+              {regionText}
+            </button>
+          )}
+
+          {/* Rank inline edit (number) */}
+          {isEditingRank ? (
+            <input
+              type="number"
+              value={rankNumber}
+              onChange={(e) => setRankNumber(Number(e.target.value))}
+              onBlur={() => setIsEditingRank(false)}
+              onKeyDown={(e) => handleInputKeyDown(e, setIsEditingRank)}
+              autoFocus
+              className="text-black bg-gray-100 rounded-full px-3 py-1.5 text-sm font-medium w-[70px]"
+              min={0}
+              max={9999}
+            />
+          ) : (
+            <button
+              onClick={() => setIsEditingRank(true)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors"
+            >
+              <Castle className="text-purple-600 w-5 h-5" />
+              {rankNumber}
+            </button>
+          )}
+        </div>
       </CardBody>
     </Card>
-  );
-}
-
-function LabeledInput({
-  icon,
-  label,
-  type = "text",
-  value,
-  onChange,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  type?: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}) {
-  return (
-    <div className="flex items-center gap-3 bg-gray-100 px-4 py-2 rounded-xl">
-      {icon}
-      <div className="flex-1">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          {label}
-        </label>
-        <Input
-          type={type}
-          value={value}
-          onChange={onChange}
-          className="w-full"
-        />
-      </div>
-    </div>
   );
 }

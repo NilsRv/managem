@@ -1,6 +1,7 @@
 // components/ScrimWall.tsx
 import { Button } from "@heroui/button";
 import { Chip } from "@heroui/chip";
+import { useEffect, useState } from "react";
 
 type Scrim = {
   time: string;
@@ -10,31 +11,33 @@ type Scrim = {
   rank: number;
 };
 
-const scrims: Scrim[] = [
-  {
-    time: "21:00",
-    team: "Team A",
-    format: "Best of 7",
-    region: "EUW",
-    rank: 2000,
-  },
-  {
-    time: "21:30",
-    team: "Team B",
-    format: "Best of 5",
-    region: "NA",
-    rank: 1900,
-  },
-  {
-    time: "22:00",
-    team: "Team C",
-    format: "Best of 7",
-    region: "EUW",
-    rank: 2100,
-  },
-];
-
 export default function ScrimWall() {
+  const [scrims, setScrims] = useState<Scrim[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchScrims() {
+      try {
+        const res = await fetch("http://127.0.0.1:8000/api/scrims", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`, // ou autre méthode d'auth
+          },
+        });
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        const data = await res.json();
+        // Suppose que data est un tableau compatible avec Scrim[]
+        setScrims(data);
+      } catch (err: any) {
+        setError(err.message || "Failed to fetch scrims");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchScrims();
+  }, []);
+
   const formatColor = (format: string) => "bg-green-200 text-green-800";
   const regionColor = (region: string) => "bg-blue-200 text-blue-800";
   const rankColor = () => "bg-purple-200 text-purple-800";
