@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Entity;
-
 use App\Repository\BookingRepository;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -38,25 +37,23 @@ class Booking
 
     public function getScrimPost(): ?ScrimPost
     {
-        return $this->ScrimPost;
+        return $this->scrimPost;
     }
 
     public function setScrimPost(?ScrimPost $scrimPost): static
     {
-        $this->ScrimPost = $scrimPost;
-
+        $this->scrimPost = $scrimPost;
         return $this;
     }
 
     public function getTeam(): ?Team
     {
-        return $this->Team;
+        return $this->team;
     }
 
-    public function setTeam(?Team $Team): static
+    public function setTeam(?Team $team): static
     {
-        $this->Team = $Team;
-
+        $this->team = $team;
         return $this;
     }
 
@@ -68,7 +65,6 @@ class Booking
     public function setRequestedAt(\DateTime $requestedAt): static
     {
         $this->requestedAt = $requestedAt;
-
         return $this;
     }
 
@@ -80,7 +76,6 @@ class Booking
     public function setStatus(string $status): static
     {
         $this->status = $status;
-
         return $this;
     }
 }

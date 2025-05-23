@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { format, isToday, isTomorrow } from "date-fns";
+import { addHours, format, isToday, isTomorrow, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 
 import { Card, CardBody } from "@heroui/card";
@@ -166,7 +166,14 @@ export default function PostScrimCard() {
               <DayPicker
                 mode="single"
                 selected={selectedDate}
-                onSelect={(date) => setSelectedDate(date || undefined)}
+                onSelect={(date) => {
+                  if (!date) {
+                    setSelectedDate(undefined);
+                    return;
+                  }
+                  const correctedDate = addHours(startOfDay(date), 12);
+                  setSelectedDate(correctedDate);
+                }}
                 locale={fr}
               />
             </PopoverContent>
