@@ -33,7 +33,7 @@ import { SearchIcon } from "@/components/icons";
 import { Logo } from "@/components/icons";
 import { useAuth } from "@/hooks/useAuth";
 import { Team } from "@/types/team";
-import { getMyTeams, createTeam } from "@/api/team";
+import { getMyTeams, createTeam, updateTeamName } from "@/api/team";
 import { useTeamStore } from "@/store/teamStore";
 import { ThemeSwitch } from "./theme-switch";
 
@@ -43,6 +43,8 @@ export const Navbar = () => {
   const { teams, selectedTeam, fetchTeams, selectTeam } = useTeamStore();
   const [newTeamName, setNewTeamName] = useState("");
   const [loading, setLoading] = useState(true);
+  const [editMode, setEditMode] = useState(false);
+  const [editedTeamName, setEditedTeamName] = useState("");
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const {
     isOpen: isTeamModalOpen,
@@ -151,7 +153,7 @@ export const Navbar = () => {
               <DropdownItem
                 key="__header__"
                 isReadOnly
-                className="h-14 gap-2 opacity-100"
+                className="gap-2 opacity-100"
               >
                 <div className="flex flex-col gap-1">
                   <span className="text-sm font-bold text-foreground">
@@ -244,21 +246,64 @@ export const Navbar = () => {
             <>
               <ModalHeader>Créer une nouvelle équipe</ModalHeader>
               <ModalBody>
-                <Input
-                  autoFocus
-                  label="Nom de l'équipe"
-                  placeholder="Ex: Team Rocket"
-                  value={newTeamName}
-                  onChange={(e) => setNewTeamName(e.target.value)}
-                />
+                {selectedTeam ? (
+                  <>
+                    {editMode ? (
+                      <Input
+                        label="Nom de l'équipe"
+                        value={editedTeamName}
+                        onChange={(e) => setEditedTeamName(e.target.value)}
+                      />
+                    ) : (
+                      <>
+                        <p className="font-semibold">
+                          {
+                            teams.find((t) => t.id.toString() === selectedTeam)
+                              ?.name
+                          }
+                        </p>
+                        <p className="text-sm text-default-500 mt-2">
+                          ID: {selectedTeam}
+                        </p>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <p>Chargement...</p>
+                )}
               </ModalBody>
               <ModalFooter>
                 <Button variant="light" onPress={onClose}>
-                  Annuler
+                  Fermer
                 </Button>
-                <Button color="primary" onPress={() => handleCreateTeam()}>
-                  Créer
-                </Button>
+                {editMode ? (
+                  <Button
+                    color="primary"
+                    onPress={async () => {
+                      const teamId = selectedTeam;
+                      if (teamId && editedTeamName.trim()) {
+                        await updateTeamName(teamId, editedTeamName.trim());
+                        await fetchTeams();
+                        setEditMode(false);
+                      }
+                    }}
+                  >
+                    Enregistrer
+                  </Button>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    onPress={() => {
+                      const team = teams.find(
+                        (t) => t.id.toString() === selectedTeam
+                      );
+                      if (team) setEditedTeamName(team.name);
+                      setEditMode(true);
+                    }}
+                  >
+                    Modifier
+                  </Button>
+                )}
               </ModalFooter>
             </>
           )}
@@ -277,15 +322,22 @@ export const Navbar = () => {
               <ModalBody>
                 {selectedTeam ? (
                   <>
-                    <p className="font-semibold">
-                      {
-                        teams.find((t) => t.id.toString() === selectedTeam)
-                          ?.name
-                      }
-                    </p>
-                    <p className="text-sm text-default-500 mt-2">
-                      ID: {selectedTeam}
-                    </p>
+                    {editMode ? (
+                      <Input
+                        label="Nom de l'équipe"
+                        value={editedTeamName}
+                        onChange={(e) => setEditedTeamName(e.target.value)}
+                      />
+                    ) : (
+                      <>
+                        <p className="font-semibold">
+                          {
+                            teams.find((t) => t.id.toString() === selectedTeam)
+                              ?.name
+                          }
+                        </p>
+                      </>
+                    )}
                   </>
                 ) : (
                   <p>Chargement...</p>
@@ -295,6 +347,34 @@ export const Navbar = () => {
                 <Button variant="light" onPress={onClose}>
                   Fermer
                 </Button>
+                {editMode ? (
+                  <Button
+                    color="primary"
+                    onPress={async () => {
+                      const teamId = selectedTeam;
+                      if (teamId && editedTeamName.trim()) {
+                        await updateTeamName(teamId, editedTeamName.trim());
+                        await fetchTeams();
+                        setEditMode(false);
+                      }
+                    }}
+                  >
+                    Enregistrer
+                  </Button>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    onPress={() => {
+                      const team = teams.find(
+                        (t) => t.id.toString() === selectedTeam
+                      );
+                      if (team) setEditedTeamName(team.name);
+                      setEditMode(true);
+                    }}
+                  >
+                    Modifier
+                  </Button>
+                )}
               </ModalFooter>
             </>
           )}

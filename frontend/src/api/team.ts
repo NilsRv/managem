@@ -1,5 +1,6 @@
 import { Team } from "@/types/team";
 import { getAuthHeaders } from "@/api/auth";
+import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -27,6 +28,23 @@ export const createTeam = async (name: string): Promise<Team> => {
   if (!response.ok) {
     const errorData = await response.json();
     throw new Error(errorData.message || "Erreur lors de la création de l'équipe.");
+  }
+
+  return response.json();
+};
+
+export const updateTeamName = async (teamId: string, name: string) => {
+  const headers = await getAuthHeaders();
+  const teamID = Number(teamId);
+  const response = await fetch(`${API_URL}/api/teams/${teamID}`, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify({ name }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || "Erreur lors de la mise à jour du nom de l'équipe.");
   }
 
   return response.json();
