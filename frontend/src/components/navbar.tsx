@@ -56,12 +56,13 @@ export const Navbar = () => {
     fetchTeams();
   }, []);
 
-  const handleCreateTeam = async () => {
+  const handleCreateTeam = async (onClose: () => void) => {
     if (!newTeamName.trim()) return;
     const created = await createTeam(newTeamName);
     if (created) {
       await fetchTeams();
       setNewTeamName("");
+      onClose();
     }
   };
 
@@ -246,64 +247,24 @@ export const Navbar = () => {
             <>
               <ModalHeader>Créer une nouvelle équipe</ModalHeader>
               <ModalBody>
-                {selectedTeam ? (
-                  <>
-                    {editMode ? (
-                      <Input
-                        label="Nom de l'équipe"
-                        value={editedTeamName}
-                        onChange={(e) => setEditedTeamName(e.target.value)}
-                      />
-                    ) : (
-                      <>
-                        <p className="font-semibold">
-                          {
-                            teams.find((t) => t.id.toString() === selectedTeam)
-                              ?.name
-                          }
-                        </p>
-                        <p className="text-sm text-default-500 mt-2">
-                          ID: {selectedTeam}
-                        </p>
-                      </>
-                    )}
-                  </>
-                ) : (
-                  <p>Chargement...</p>
-                )}
+                <Input
+                  autoFocus
+                  label="Nom de l'équipe"
+                  placeholder="Ex: Team Rocket"
+                  value={newTeamName}
+                  onChange={(e) => setNewTeamName(e.target.value)}
+                />
               </ModalBody>
               <ModalFooter>
                 <Button variant="light" onPress={onClose}>
-                  Fermer
+                  Annuler
                 </Button>
-                {editMode ? (
-                  <Button
-                    color="primary"
-                    onPress={async () => {
-                      const teamId = selectedTeam;
-                      if (teamId && editedTeamName.trim()) {
-                        await updateTeamName(teamId, editedTeamName.trim());
-                        await fetchTeams();
-                        setEditMode(false);
-                      }
-                    }}
-                  >
-                    Enregistrer
-                  </Button>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    onPress={() => {
-                      const team = teams.find(
-                        (t) => t.id.toString() === selectedTeam
-                      );
-                      if (team) setEditedTeamName(team.name);
-                      setEditMode(true);
-                    }}
-                  >
-                    Modifier
-                  </Button>
-                )}
+                <Button
+                  color="primary"
+                  onPress={() => handleCreateTeam(onClose)}
+                >
+                  Créer
+                </Button>
               </ModalFooter>
             </>
           )}
