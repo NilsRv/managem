@@ -3,6 +3,7 @@ import { Chip } from "@heroui/chip";
 import { useEffect, useState } from "react";
 import { useTeamStore } from "@/store/teamStore";
 import { bookScrim } from "@/api/scrim";
+import { Pencil } from "lucide-react";
 
 type Scrim = {
   id: number;
@@ -14,7 +15,6 @@ type Scrim = {
   rank: number;
 };
 
-// Pour formater le nom du jour en français
 const joursFr = [
   "Dimanche",
   "Lundi",
@@ -65,19 +65,18 @@ export default function ScrimWall() {
   const [scrims, setScrims] = useState<Scrim[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { selectedTeam } = useTeamStore();
+  const { teams, selectedTeam } = useTeamStore();
 
   useEffect(() => {
     async function fetchScrims() {
       try {
         const res = await fetch("http://127.0.0.1:8000/api/scrims", {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`, // ou autre méthode d'auth
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
         if (!res.ok) throw new Error(`HTTP error ${res.status}`);
         const data = await res.json();
-        // Suppose que data est un tableau compatible avec Scrim[]
         setScrims(data);
       } catch (err: any) {
         setError(err.message || "Failed to fetch scrims");
@@ -92,18 +91,15 @@ export default function ScrimWall() {
   const regionColor = (region: string) => "bg-blue-200 text-blue-800";
   const rankColor = () => "bg-purple-200 text-purple-800";
 
-  // Date du jour à 00:00:00 pour filtre
   const todayDate = new Date();
   todayDate.setHours(0, 0, 0, 0);
 
-  // Filtrer les scrims à partir d'aujourd'hui (exclure scrims antérieurs)
   const filteredScrims = scrims.filter((scrim) => {
     const scrimDate = new Date(scrim.date);
     scrimDate.setHours(0, 0, 0, 0);
     return scrimDate >= todayDate;
   });
 
-  // Grouper par date
   const groupedScrims = filteredScrims.reduce(
     (acc, scrim) => {
       if (!acc[scrim.date]) {
@@ -115,7 +111,6 @@ export default function ScrimWall() {
     {} as Record<string, Scrim[]>
   );
 
-  // Trier les clés (dates) asc
   const sortedDates = Object.keys(groupedScrims).sort((a, b) =>
     a.localeCompare(b)
   );
@@ -152,24 +147,35 @@ export default function ScrimWall() {
                       </Chip>
                       <Chip className={rankColor()}>{scrim.rank}</Chip>
                     </div>
-                    <Button
-                      className="rounded-xl bg-gray-800 px-4 py-1.5 text-white hover:bg-gray-700 transition"
-                      onClick={async () => {
-                        if (!selectedTeam) {
-                          alert("Veuillez d'abord sélectionner une équipe.");
-                          return;
-                        }
+                    {teams.some((team) => team.name === scrim.team) ? (
+                      <Button
+                        className="rounded-xl bg-transparent px-4 py-1.5 text-white hover:bg-gray-200 transition"
+                        onClick={() => {
+                          alert("Accès à l’édition du scrim.");
+                        }}
+                      >
+                        <Pencil className="h-4 w-4 text-gray-800" />
+                      </Button>
+                    ) : (
+                      <Button
+                        className="rounded-xl bg-gray-800 px-4 py-1.5 text-white hover:bg-gray-700 transition"
+                        onClick={async () => {
+                          if (!selectedTeam) {
+                            alert("Veuillez d'abord sélectionner une équipe.");
+                            return;
+                          }
 
-                        try {
-                          await bookScrim(scrim.id, Number(selectedTeam));
-                          alert("Scrim réservé avec succès !");
-                        } catch (error: any) {
-                          alert(`Erreur : ${error.message}`);
-                        }
-                      }}
-                    >
-                      Book
-                    </Button>
+                          try {
+                            await bookScrim(scrim.id, Number(selectedTeam));
+                            alert("Scrim réservé avec succès !");
+                          } catch (error: any) {
+                            alert(`Erreur : ${error.message}`);
+                          }
+                        }}
+                      >
+                        Book
+                      </Button>
+                    )}
                   </div>
                 ))}
             </div>

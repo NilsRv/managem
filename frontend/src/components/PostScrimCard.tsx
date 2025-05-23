@@ -64,7 +64,7 @@ export default function PostScrimCard() {
     try {
       setLoading(true);
 
-      // Formatage de la date en ISO YYYY-MM-DD
+      //en ISO YYYY-MM-DD
       const formattedDate = selectedDate.toISOString().split("T")[0];
 
       console.log({
@@ -75,7 +75,6 @@ export default function PostScrimCard() {
         region: regionText,
         rank: rankNumber,
       });
-      // Appel à l'API
       const scrim = await createScrim(
         Number(selectedTeam),
         formatText,
@@ -86,7 +85,6 @@ export default function PostScrimCard() {
       );
 
       alert("Scrim posté avec succès !");
-      // Tu peux reset les champs ou faire autre chose ici
     } catch (error: any) {
       alert(`Erreur lors de la création du scrim : ${error.message}`);
     } finally {
@@ -94,7 +92,6 @@ export default function PostScrimCard() {
     }
   };
 
-  // Helpers pour gérer Enter + blur sur inputs
   const handleInputKeyDown = (
     e: React.KeyboardEvent<HTMLInputElement>,
     setEditing: (b: boolean) => void

@@ -5,7 +5,6 @@ import { jwtDecode } from "jwt-decode"
 
 interface DecodedToken {
   username: string;
-  // ajoute d'autres champs si ton token les contient
 }
 
 export const useAuth = () => {

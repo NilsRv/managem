@@ -115,4 +115,54 @@ class TeamController extends AbstractController
         return $this->json(['message' => 'Invitation envoyée'], Response::HTTP_OK);
     }
 
+    #[Route('/{id}', name: 'update', methods: ['PUT'])]
+    #[IsGranted('ROLE_USER')]
+    public function update(
+        int $id,
+        Request $req,
+        TeamRepository $teams,
+        EntityManagerInterface $em,
+        ValidatorInterface $validator,
+        SluggerInterface $slugger
+    ): JsonResponse {
+        $team = $teams->find($id);
+        if (!$team) {
+            return $this->json(['error' => 'Équipe non trouvée'], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($team->getOwner()->getUserIdentifier() !== $this->getUser()->getUserIdentifier()) {
+            return $this->json(['error' => 'Accès refusé'], Response::HTTP_FORBIDDEN);
+        }
+
+        $payload = json_decode($req->getContent(), true);
+        $newName = $payload['name'] ?? null;
+
+        if (!$newName) {
+            return $this->json(['error' => 'Le nom est requis'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $team->setName($newName);
+        $team->setSlug(\strtolower($slugger->slug($newName)));
+
+        $errors = $validator->validate($team);
+        if (count($errors) > 0) {
+            $errs = [];
+            foreach ($errors as $e) {
+                $errs[$e->getPropertyPath()] = $e->getMessage();
+            }
+            return $this->json(['errors' => $errs], Response::HTTP_BAD_REQUEST);
+        }
+
+        $em->flush();
+
+        return $this->json([
+            'id'        => $team->getId(),
+            'name'      => $team->getName(),
+            'slug'      => $team->getSlug(),
+            'createdAt' => $team->getCreatedAt()->format(\DateTime::ATOM),
+        ]);
+    }
+
+
+
 }

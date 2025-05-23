@@ -33,7 +33,7 @@ import { SearchIcon } from "@/components/icons";
 import { Logo } from "@/components/icons";
 import { useAuth } from "@/hooks/useAuth";
 import { Team } from "@/types/team";
-import { getMyTeams, createTeam } from "@/api/team"; // assure-toi d'avoir createTeam
+import { getMyTeams, createTeam } from "@/api/team";
 import { useTeamStore } from "@/store/teamStore";
 import { ThemeSwitch } from "./theme-switch";
 
@@ -58,7 +58,7 @@ export const Navbar = () => {
     if (!newTeamName.trim()) return;
     const created = await createTeam(newTeamName);
     if (created) {
-      await fetchTeams(); // recharge les équipes + met à jour selectedTeam via localStorage
+      await fetchTeams();
       setNewTeamName("");
     }
   };
@@ -283,7 +283,6 @@ export const Navbar = () => {
                           ?.name
                       }
                     </p>
-                    {/* Tu peux ajouter ici d’autres infos (membres, description...) */}
                     <p className="text-sm text-default-500 mt-2">
                       ID: {selectedTeam}
                     </p>

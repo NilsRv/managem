@@ -45,21 +45,18 @@ class BookingController extends AbstractController
             return $this->json(['error' => 'Team not found'], 404);
         }
 
-        // Optionnel : vérifier que le user est bien membre de l'équipe
         if (!$team->getMembers()->contains($user)) {
             return $this->json(['error' => 'You are not a member of this team'], 403);
         }
 
-        // 3. Vérifier qu'on ne booke pas notre propre scrim
         if ($scrimPost->getTeam()->getId() === $team->getId()) {
             return $this->json(['error' => 'You cannot book your own scrim'], 400);
         }
 
-        // 4. Créer et persister le Booking
         $booking = new Booking();
         $booking->setTeam($team);
         $booking->setScrimPost($scrimPost);
-        $booking->setStatus('pending'); // ou 'requested'
+        $booking->setStatus('pending');
 
         $em->persist($booking);
         $em->flush();
