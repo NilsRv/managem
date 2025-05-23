@@ -22,7 +22,7 @@ class RegisterController extends AbstractController
         private JWTTokenManagerInterface    $jwtManager,
     ) {}
 
-    #[Route('/api/register', name: 'api_register', methods: ['POST'])]
+    #[Route('', name: 'api_register', methods: ['POST'])]
     public function __invoke(
         Request $request,
         UserRepository $userRepository,
