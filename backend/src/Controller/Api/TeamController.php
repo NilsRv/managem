@@ -175,6 +175,33 @@ class TeamController extends AbstractController
         ]);
     }
 
+    #[Route('/invitations', name: 'invitations_list', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function listInvitations(
+        TeamInvitationRepository $invitationRepo
+    ): JsonResponse {
+        $user = $this->getUser();
+        $invitations = $invitationRepo->findBy([
+            'invitedUser' => $user,
+            'status' => 'pending'
+        ]);
+
+        $data = array_map(function (TeamInvitation $invitation) {
+            return [
+                'id' => $invitation->getId(),
+                'team' => [
+                    'id' => $invitation->getTeam()->getId(),
+                    'name' => $invitation->getTeam()->getName(),
+                    'slug' => $invitation->getTeam()->getSlug(),
+                ],
+                'status' => $invitation->getStatus(),
+                'createdAt' => $invitation->getCreatedAt()?->format(\DateTime::ATOM),
+            ];
+        }, $invitations);
+
+        return $this->json($data);
+    }
+
 
     #[Route('/{id}', name: 'update', methods: ['PUT'])]
     #[IsGranted('ROLE_USER')]
