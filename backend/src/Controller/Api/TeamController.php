@@ -14,6 +14,8 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\String\Slugger\SluggerInterface;
+use App\Repository\TeamInvitationRepository;
+use App\Entity\TeamInvitation;
 
 #[Route('/api/teams', name: 'api_teams_')]
 class TeamController extends AbstractController
@@ -83,11 +85,12 @@ class TeamController extends AbstractController
         Request $req,
         TeamRepository $teams,
         UserRepository $users,
+        TeamInvitationRepository $invitationRepo,
         EntityManagerInterface $em
     ): JsonResponse {
         $team = $teams->find($id);
         if (!$team) {
-            return $this->json(['error' => 'Équipe non trouvée'], Response::HTTP_NOT_FOUND);
+            return $this->json(['error' => 'Equipe non trouvée'], Response::HTTP_NOT_FOUND);
         }
 
         if ($team->getOwner()->getId() !== $this->getUser()->getId()) {
@@ -95,12 +98,12 @@ class TeamController extends AbstractController
         }
 
         $payload = json_decode($req->getContent(), true);
-        $email = $payload['email'] ?? null;
-        if (!$email) {
-            return $this->json(['error' => 'Email requis'], Response::HTTP_BAD_REQUEST);
+        $userId = $payload['userId'] ?? null;
+        if (!$userId) {
+            return $this->json(['error' => 'userId requis'], Response::HTTP_BAD_REQUEST);
         }
 
-        $user = $users->findOneBy(['email' => $email]);
+        $user = $users->find($userId);
         if (!$user) {
             return $this->json(['error' => 'Utilisateur non trouvé'], Response::HTTP_NOT_FOUND);
         }
@@ -109,11 +112,69 @@ class TeamController extends AbstractController
             return $this->json(['message' => 'Utilisateur déjà membre'], Response::HTTP_OK);
         }
 
-        $team->addMember($user);
+        $existingInvitation = $invitationRepo->findOneBy([
+            'team' => $team,
+            'invitedUser' => $user,
+            'status' => 'pending',
+        ]);
+
+        if ($existingInvitation) {
+            return $this->json(['message' => 'Invitation déjà envoyée'], Response::HTTP_OK);
+        }
+
+        $invitation = new TeamInvitation();
+        $invitation->setTeam($team);
+        $invitation->setInvitedUser($user);
+        $invitation->setStatus('pending');
+        $em->persist($invitation);
         $em->flush();
 
         return $this->json(['message' => 'Invitation envoyée'], Response::HTTP_OK);
     }
+
+    #[Route('/{id}/invite', name: 'invite_respond', methods: ['PATCH'])]
+    #[IsGranted('ROLE_USER')]
+    public function respondInvitation(
+        int $id,
+        Request $request,
+        TeamInvitationRepository $invitationRepo,
+        EntityManagerInterface $em
+    ): JsonResponse {
+        $invitation = $invitationRepo->find($id);
+        if (!$invitation) {
+            return $this->json(['error' => 'Invitation non trouvée'], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($invitation->getInvitedUser()->getId() !== $this->getUser()->getId()) {
+            return $this->json(['error' => 'Accès refusé'], Response::HTTP_FORBIDDEN);
+        }
+
+        if ($invitation->getStatus() !== 'pending') {
+            return $this->json(['message' => 'Invitation déjà traitée'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $data = json_decode($request->getContent(), true);
+        $action = $data['action'] ?? null;
+
+        if (!in_array($action, ['accept', 'reject'])) {
+            return $this->json(['error' => 'Action invalide. Utilisez accept ou reject'], Response::HTTP_BAD_REQUEST);
+        }
+
+        if ($action === 'accept') {
+            $team = $invitation->getTeam();
+            $team->addMember($this->getUser());
+            $invitation->setStatus('accepted');
+        } else {
+            $invitation->setStatus('rejected');
+        }
+
+        $em->flush();
+
+        return $this->json([
+            'message' => 'Invitation ' . ($action === 'accept' ? 'acceptée' : 'refusée') . ' avec succès'
+        ]);
+    }
+
 
     #[Route('/{id}', name: 'update', methods: ['PUT'])]
     #[IsGranted('ROLE_USER')]
@@ -163,6 +224,49 @@ class TeamController extends AbstractController
         ]);
     }
 
+    #[Route('/{id}', name: 'delete', methods:['DELETE'])]
+    #[IsGranted('ROLE_USER')]
+    public function delete (
+        int $id, 
+        TeamRepository $teams,
+        EntityManagerInterface $em
+    ): JsonResponse {
+        $team = $teams->find($id);
+        if (!$team) {
+            return $this->json(['error' => 'Equipe non trouvée'], Response::HTTP_NOT_FOUND);
+        }
 
+        if ($team->getOwner()->getId() !== $this->getUser()->getId()) {
+            return $this->json(['error' => 'Accès refusé'], Response::HTTP_FORBIDDEN);
+        }
+
+        if ($team->isDeleted()) {
+            return $this->json(['message' => 'Équipe déjà supprimée'], Response::HTTP_OK);
+        }
+
+        $team->setDeletedAt(new \DateTimeImmutable());
+        $em->flush();
+
+        return $this->json(['message' => 'Équipe supprimée avec succès'], Response::HTTP_OK);
+    }
+
+    #[Route('/{id}/restore', name: 'restore', methods: ['PUT'])]
+    #[IsGranted('ROLE_USER')]
+    public function restore(int $id, TeamRepository $teams, EntityManagerInterface $em): JsonResponse
+    {
+        $team = $teams->find($id);
+        if (!$team || !$team->isDeleted()) {
+            return $this->json(['error' => 'Équipe non trouvée ou déjà active'], Response::HTTP_BAD_REQUEST);
+        }
+
+        if ($team->getOwner()->getId() !== $this->getUser()->getId()) {
+            return $this->json(['error' => 'Accès refusé'], Response::HTTP_FORBIDDEN);
+        }
+
+        $team->setDeletedAt(null);
+        $em->flush();
+
+        return $this->json(['message' => 'Équipe restaurée avec succès']);
+    }
 
 }

@@ -22,6 +22,7 @@ class TeamRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('t')
             ->innerJoin('t.teamMembers', 'tm')
             ->where('tm.user = :user')
+            ->andWhere('t.deletedAt IS NULL')
             ->setParameter('user', $user)
             ->getQuery()
             ->getResult();
