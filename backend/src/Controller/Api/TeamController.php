@@ -23,7 +23,7 @@ class TeamController extends AbstractController
     public function list(TeamRepository $teams): JsonResponse
     {
         $user = $this->getUser();
-        $myTeams = $teams->findBy(['owner' => $user]);
+        $myTeams = $teams->findTeamsByUser($user);
 
         $data = array_map(fn(Team $t) => [
             'id'        => $t->getId(),
