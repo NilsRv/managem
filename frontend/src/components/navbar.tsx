@@ -36,15 +36,14 @@ import { Team } from "@/types/team";
 import { getMyTeams, createTeam, updateTeamName } from "@/api/team";
 import { useTeamStore } from "@/store/teamStore";
 import { ThemeSwitch } from "./theme-switch";
+import TeamModal from "./TeamModal";
+import { CirclePlus } from "lucide-react";
 
 export const Navbar = () => {
   const { getUserEmail } = useAuth();
   const userEmail = getUserEmail();
   const { teams, selectedTeam, fetchTeams, selectTeam } = useTeamStore();
   const [newTeamName, setNewTeamName] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [editMode, setEditMode] = useState(false);
-  const [editedTeamName, setEditedTeamName] = useState("");
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const {
     isOpen: isTeamModalOpen,
@@ -84,30 +83,6 @@ export const Navbar = () => {
         <SearchIcon className="text-base text-default-400 pointer-events-none flex-shrink-0" />
       }
     />
-  );
-
-  const PlusIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg
-      aria-hidden="true"
-      fill="none"
-      focusable="false"
-      height="1em"
-      role="presentation"
-      viewBox="0 0 24 24"
-      width="1em"
-      {...props}
-    >
-      <g
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.5}
-      >
-        <path d="M6 12h12" />
-        <path d="M12 18V6" />
-      </g>
-    </svg>
   );
 
   return (
@@ -195,7 +170,7 @@ export const Navbar = () => {
               <DropdownItem
                 key="__create__"
                 className="text-primary font-medium"
-                endContent={<PlusIcon />}
+                endContent={<CirclePlus size={20} />}
               >
                 Créer une équipe
               </DropdownItem>
@@ -271,76 +246,7 @@ export const Navbar = () => {
         </ModalContent>
       </Modal>
 
-      <Modal
-        backdrop="blur"
-        isOpen={isTeamModalOpen}
-        onOpenChange={onTeamModalChange}
-      >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader>Détails de l’équipe</ModalHeader>
-              <ModalBody>
-                {selectedTeam ? (
-                  <>
-                    {editMode ? (
-                      <Input
-                        label="Nom de l'équipe"
-                        value={editedTeamName}
-                        onChange={(e) => setEditedTeamName(e.target.value)}
-                      />
-                    ) : (
-                      <>
-                        <p className="font-semibold">
-                          {
-                            teams.find((t) => t.id.toString() === selectedTeam)
-                              ?.name
-                          }
-                        </p>
-                      </>
-                    )}
-                  </>
-                ) : (
-                  <p>Chargement...</p>
-                )}
-              </ModalBody>
-              <ModalFooter>
-                <Button variant="light" onPress={onClose}>
-                  Fermer
-                </Button>
-                {editMode ? (
-                  <Button
-                    color="primary"
-                    onPress={async () => {
-                      const teamId = selectedTeam;
-                      if (teamId && editedTeamName.trim()) {
-                        await updateTeamName(teamId, editedTeamName.trim());
-                        await fetchTeams();
-                        setEditMode(false);
-                      }
-                    }}
-                  >
-                    Enregistrer
-                  </Button>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    onPress={() => {
-                      const team = teams.find(
-                        (t) => t.id.toString() === selectedTeam
-                      );
-                      if (team) setEditedTeamName(team.name);
-                      setEditMode(true);
-                    }}
-                  >
-                    Modifier
-                  </Button>
-                )}
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
+      <TeamModal isOpen={isTeamModalOpen} onOpenChange={onTeamModalChange} />
 
       {/* Menu mobile */}
       <NavbarMenu>

@@ -1,6 +1,7 @@
 import { Team } from "@/types/team";
 import { getAuthHeaders } from "@/api/auth";
 import axios from "axios";
+import { User } from "@/types/user";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -48,4 +49,20 @@ export const updateTeamName = async (teamId: string, name: string) => {
   }
 
   return response.json();
+};
+
+export const getTeamMembers = async (teamId: string): Promise<User[]> => {
+  const headers = await getAuthHeaders();
+
+  const response = await fetch(`${API_URL}/api/teams/${teamId}/members`, {
+    method: "GET",
+    headers,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || "Erreur lors de la récupération des membres.");
+  }
+
+  return response.json(); 
 };

@@ -296,4 +296,30 @@ class TeamController extends AbstractController
         return $this->json(['message' => 'Équipe restaurée avec succès']);
     }
 
+    #[Route('/{id}/members', name: 'members', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function listMembers(int $id, TeamRepository $teams): JsonResponse
+    {
+        $team = $teams->find($id);
+        if (!$team) {
+            return $this->json(['error' => 'Équipe non trouvée'], Response::HTTP_NOT_FOUND);
+        }
+
+        // Vérifier que l'utilisateur est membre de l'équipe
+        if (!$team->getMembers()->contains($this->getUser())) {
+            return $this->json(['error' => 'Accès refusé'], Response::HTTP_FORBIDDEN);
+        }
+
+        $members = $team->getMembers()->toArray();
+
+        $data = array_map(function ($member) {
+            return [
+                'id' => $member->getId(),
+                'email' => $member->getEmail(),
+                'roles' => $member->getRoles(),
+            ];
+        }, $members);
+
+        return $this->json($data);
+    }
 }
